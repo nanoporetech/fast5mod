@@ -1,0 +1,59 @@
+image: $IMAGE
+
+stages:
+    - test
+    - build
+    - deploy
+
+test:
+    stage: test
+    before_script:
+        - apt-get update -qq && apt-get install -y -qq
+          gcc make cmake curl wget
+          python3-all-dev python-virtualenv zlib1g-dev libssl-dev libffi-dev valgrind
+    script:
+        - make test
+
+.many-linux: &many-linux-def
+  image: quay.io/pypa/manylinux1_x86_64
+  stage: build
+  before_script:
+      - echo "Nothing to do in before_script"
+  artifacts:
+      paths:
+          - wheelhouse/*.whl
+  only:
+      - tags
+
+build:many-linux-5:
+    <<: *many-linux-def
+    script:
+        - ./build-wheels.sh . 5
+
+build:many-linux-6:
+    <<: *many-linux-def
+    script:
+        - ./build-wheels.sh . 6
+
+build:sdist:
+    stage: build
+    before_script:
+        - apt-get update -qq && apt-get install -y -qq
+          python3-all-dev python-virtualenv
+    script:
+        - make sdist
+    artifacts:
+        paths:
+            - dist/*.tar.gz
+
+deploy:pypi:
+    stage: deploy
+    before_script:
+        - apt-get update -qq && apt-get install -y -qq
+          python3-all-dev python-virtualenv
+    script:
+        - make build
+        - source pypi_build/bin/activate
+        - twine upload dist/*.tar.gz wheelhouse/*.whl
+    only:
+        - tags
