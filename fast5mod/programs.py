@@ -1,6 +1,7 @@
 """Functionality for aggregating single read methylation calls."""
 
 from collections import Counter, namedtuple
+import functools
 import queue
 import sys
 import threading
@@ -58,7 +59,7 @@ def format_uint8_list(array):
     return string
 
 
-def align_read(aligner, read, tags=[]):
+def align_read(aligner, read, tags=None):
     """Aligns a `Read` namedtuple to produce a sam record.
 
     :param aligner: a `mappy.Aligner` instance`
@@ -91,13 +92,15 @@ def align_read(aligner, read, tags=[]):
     NM = 'NM:i:' + str(align.NM)
 
     # NOTE: tags written without reversal, see below
+    if tags is None:
+        tags = []
     sam = '\t'.join((
         read.read_id, flag, rname, pos, mapq, cigar,
         '*', '0', '0', seq, qstring, NM, *tags))
     return sam
 
 
-def unaligned_read(read, tags=[]):
+def unaligned_read(read, tags=None):
     """Create an unaligned sam record for a read.
 
     :param read: a `Read` namedtuple.
@@ -105,6 +108,8 @@ def unaligned_read(read, tags=[]):
 
     :returns: a (string) sam record.
     """
+    if tags is None:
+        tags = []
     sam = '\t'.join((
         read.read_id, '4', '*', '0', '255', '*',
         '*', '0', '0', read.sequence, read.quality, *tags))
@@ -155,39 +160,6 @@ def hdf_to_sam_worker(fname):
             read = Read(read_id, sequence, qstring)
             results.append((read, tags))
     return results
-
-
-class Aligner(object):
-    """Mappy alignment interface."""
-
-    def __init__(self, reference, **kwargs):
-        """Initialize `mappy` interface.
-
-        :param reference: .fasta reference file.
-        :param kwargs: keyword arguments for `mappy.Aligner`.
-
-        """
-        self.reference = reference
-        self.aligner = None
-        self._loadlock = threading.Lock()
-        self.kwargs = kwargs
-        self.logger = fast5mod.common.get_named_logger('Aligner')
-
-    def map(self, read, tags=[]):
-        """Map/align a read returning a sam record.
-
-        :param read: a `Read` namedtuple.
-        :param tags: list containing additional tags to add to sam record.
-
-        """
-        if self.aligner is None:
-            self._loadlock.acquire()
-            if self.aligner is None:
-                self.logger.info('Loading alignment index...')
-                self.aligner = mappy.Aligner(self.reference, **self.kwargs)
-                self.logger.info('Alignment index loaded.')
-            self._loadlock.release()
-        return align_read(self.aligner, read, tags)
 
 
 class Extractor(object):
@@ -305,13 +277,17 @@ def hdf_to_sam(args):
             for name, length in zip(fa.references, fa.lengths):
                 sys.stdout.write('@SQ\tSN:{}\tLN:{}\n'.format(name, length))
         sys.stdout.flush()
-        aligner = Aligner(
-            args.reference, preset='map-ont', n_threads=args.workers)
 
+        # TODO: this will end in a mappy.ThreadBuffer created for each read.
+        #       Should grab one per worker thread
+        logger.info("Loading alignment index.")
+        aligner = functools.partial(
+            align_read, mappy.Aligner(args.reference, preset='map-ont'))
+        logger.info("Alingment index loaded.")
         with ThreadPoolExecutor(
                 max_items=args.workers, max_workers=args.workers) as executor:
             for read, tags in extractor:
-                future = executor.submit(aligner.map, read, tags)
+                future = executor.submit(aligner, read, tags)
                 future.add_done_callback(_write_sam_future)
 
 
