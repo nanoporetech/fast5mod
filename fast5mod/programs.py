@@ -2,12 +2,13 @@
 
 from collections import Counter, namedtuple
 import functools
-import queue
+import multiprocessing
 import sys
 import threading
 import time
 
 import mappy
+import numpy as np
 from ont_fast5_api.conversion_tools.conversion_utils import get_fast5_file_list
 from ont_fast5_api.fast5_interface import get_fast5_file
 import pysam
@@ -43,7 +44,7 @@ def format_uint8_list(array):
 
     :param array: a uint8 array.
 
-    :returns: a comma separate string.
+    :returns: a comma separated string.
 
     """
     ffi = libfast5mod.ffi
@@ -191,7 +192,7 @@ class Extractor(object):
         # as the queue is filled from a callback in the main thread.
         # Instead we just don't submit new jobs if the queue is above
         # the requested size.
-        self.queue = queue.Queue()
+        self.queue = multiprocessing.Queue()
         self.files_processed = 0
         self.total_files = 0
 
@@ -226,7 +227,6 @@ class Extractor(object):
                 self.queue.put(r)
         except Exception as e:
             sys.stderr.write(e)
-            pass
         # https://bugs.python.org/issue27144
         future._result = None
         self.files_processed += 1
@@ -237,7 +237,7 @@ class Extractor(object):
         """Get a read from the internal queue."""
         item = self.queue.get()
         if item is not None:
-            self.queue.task_done()
+            pass
         else:
             raise StopIteration('All items processed.')
         return item
@@ -251,15 +251,26 @@ class Extractor(object):
                 break
 
 
+def read_fasta(path):
+    """Read a fasta/q file returning tuples as .fast5 extractor.
+
+    :param path: input file
+    """
+    with pysam.FastxFile(path) as fa:
+        for seq in fa:
+            seq_len = len(seq.sequence)
+            seq = Read('abcdf', seq.sequence, '!' * seq_len)
+            scores = np.zeroes(seq_len, dtype='uint8')
+            tag = 'MA:B:C,{}'.format(format_uint8_list(scores))
+            yield seq, [tag]
+
+
 def hdf_to_sam(args):
     """Entry point for converting guppy methylcalled fast5s to sam."""
     logger = fast5mod.common.get_named_logger('ModExtract')
     logger.info(
         "NOTE: Mod. base scores are output w.r.t the sequencing direction, "
         "not the aligned read orientation.")
-    extractor = Extractor(
-        args.path,
-        recursive=args.recursive, workers=args.io_workers)
 
     sys.stdout.write('\t'.join(('@HD', 'VN:1.5', 'SO:unsorted')))
     sys.stdout.write('\n')
@@ -269,6 +280,8 @@ def hdf_to_sam(args):
         'aligning to the reverse strand.\n')))
     if args.reference is None:
         # write unaligned sam
+        extractor = Extractor(
+            args.path, recursive=args.recursive, workers=args.io_workers)
         for read, tags in extractor:
             sam = unaligned_read(read, tags)
             sys.stdout.write('{}\n'.format(sam))
@@ -283,9 +296,12 @@ def hdf_to_sam(args):
         logger.info("Loading alignment index.")
         aligner = functools.partial(
             align_read, mappy.Aligner(args.reference, preset='map-ont'))
-        logger.info("Alingment index loaded.")
+        logger.info("Alignment index loaded.")
+
         with ThreadPoolExecutor(
                 max_items=args.workers, max_workers=args.workers) as executor:
+            extractor = Extractor(
+                args.path, recursive=args.recursive, workers=args.io_workers)
             for read, tags in extractor:
                 future = executor.submit(aligner, read, tags)
                 future.add_done_callback(_write_sam_future)
