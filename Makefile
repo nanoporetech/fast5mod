@@ -11,7 +11,7 @@ venv: venv/bin/activate
 IN_VENV=. ./venv/bin/activate
 
 venv/bin/activate:
-	test -d venv || virtualenv venv --python=$(PYTHON) --prompt "(fast5mod) "
+	test -d venv || $(PYTHON) -m venv --prompt "fast5mod" venv
 	${IN_VENV} && pip install pip --upgrade
 
 

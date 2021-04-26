@@ -28,7 +28,7 @@ def _log_level():
 def main():
     """Run main entry point."""
     pymajor, pyminor = sys.version_info[0:2]
-    if (pymajor < 3) or (pyminor not in {5, 6}):
+    if (pymajor < 3) or (pyminor not in {5, 6, 7, 8}):
         raise RuntimeError(
             '`medaka` is unsupported on your version of python, '
             'please use python 3.5 or python 3.6.')

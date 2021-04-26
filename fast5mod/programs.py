@@ -478,12 +478,14 @@ def call_methylation(args):
                     except StopIteration:
                         continue
 
-                    pileup = bam.pileup(region.ref_name, region.start, region.end)
+                    pileup = bam.pileup(
+                        region.ref_name, region.start, region.end)
                     for pileupcolumn in padded_pileup(
                             pileup, region.start, region.end):
                         if (pileupcolumn.pos - region.start) % 1000000 == 0:
                             done = pileupcolumn.pos - region.start
-                            pct_done = 100 * done // (region.end - region.start)
+                            pct_done = 100 * done // \
+                                (region.end - region.start)
                             logger.info(
                                 "Processed {} ref positions ({}%)".format(
                                     done, pct_done))
@@ -513,7 +515,8 @@ def call_methylation(args):
                             continue
 
                         if tracker.taken_all:
-                            fh.write('\t'.join(str(x) for x in tracker.summary))
+                            fh.write(
+                                '\t'.join(str(x) for x in tracker.summary))
                             fh.write('\n')
                             tracker.reset_counters()
                         try:
