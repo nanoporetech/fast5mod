@@ -13,7 +13,7 @@ from ont_fast5_api.fast5_interface import get_fast5_file
 import pysam
 
 import fast5mod.common
-from fast5mod.executor import ProcessPoolExecutor, ThreadPoolExecutor, Queue
+from fast5mod.executor import ProcessPoolExecutor, Queue, ThreadPoolExecutor
 import libfast5mod
 
 BASECALLANALYSIS = 'Basecall_1D'
