@@ -45,3 +45,59 @@ class ThreadPoolExecutor(_Executor, concurrent.futures.ThreadPoolExecutor):
         """
         super().__init__(**kwargs)
         self.semaphore = threading.BoundedSemaphore(max_items)
+
+
+class Counter:
+    """A shared counter object with safe increment/decrement."""
+
+    def __init__(self, initial=0):
+        """Initialise the counter."""
+        self._count = multiprocessing.Value('i', initial)
+
+    @property
+    def value(self):
+        """Return the current value of the counter."""
+        return self._count.value
+
+    def increment(self, amount=1):
+        """Increment the counter."""
+        with self._count.get_lock():
+            self._count.value += amount
+        return self
+
+    def decrement(self, amount=1):
+        """Decrement the counter."""
+        with self._count.get_lock():
+            self._count.value -= amount
+
+
+class Queue(multiprocessing.queues.Queue):
+    """A `multiprocessing.queues.Queue` that keeps track of its size.
+
+    The class reimplements `.qsize()` in a way that works on macOS.
+    """
+
+    def __init__(self, **kwargs):
+        """Initialize the class."""
+        super(Queue, self).__init__(
+            ctx=multiprocessing.get_context(), **kwargs)
+        self._size = Counter(0)
+
+    def put(self, *args, **kwargs):
+        """Put an object in the Queue."""
+        super().put(*args, **kwargs)
+        self._size.increment()
+
+    def get(self, *args, **kwargs):
+        """Get an object from the Queue."""
+        rval = super().get(*args, **kwargs)
+        self._size.decrement()
+        return rval
+
+    def qsize(self):
+        """Return the size of the queue."""
+        return self._size.value
+
+    def empty(self):
+        """Return if the queue is empty."""
+        return self.qsize() == 0

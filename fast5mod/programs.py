@@ -2,7 +2,6 @@
 
 from collections import Counter, namedtuple
 import functools
-import multiprocessing
 import sys
 import threading
 import time
@@ -14,7 +13,7 @@ from ont_fast5_api.fast5_interface import get_fast5_file
 import pysam
 
 import fast5mod.common
-from fast5mod.executor import ProcessPoolExecutor, ThreadPoolExecutor
+from fast5mod.executor import ProcessPoolExecutor, ThreadPoolExecutor, Queue
 import libfast5mod
 
 BASECALLANALYSIS = 'Basecall_1D'
@@ -192,7 +191,7 @@ class Extractor(object):
         # as the queue is filled from a callback in the main thread.
         # Instead we just don't submit new jobs if the queue is above
         # the requested size.
-        self.queue = multiprocessing.Queue()
+        self.queue = Queue()
         self.files_processed = 0
         self.total_files = 0
 
