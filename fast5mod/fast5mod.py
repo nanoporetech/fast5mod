@@ -81,11 +81,11 @@ def main():
         'reference',
         help='.fasta containing reference sequence(s).')
     methcallparser.add_argument(
-        'region',
-        help='bam region to process (chrom:start-end).')
-    methcallparser.add_argument(
         'output',
         help='Output file name.')
+    methcallparser.add_argument(
+        '--regions', nargs='+',
+        help='bam region to process ("chrom:start-end").')
     methcallparser.add_argument(
         '--meth', default='cpg',
         choices=list(fast5mod.programs.MOTIFS.keys()),

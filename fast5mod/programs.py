@@ -445,9 +445,6 @@ def call_methylation(args):
     """Entry point for calling methylation from bam file."""
     logger = fast5mod.common.get_named_logger('Mextract')
     logger.info("Processing {}.".format(args.bam))
-    region = fast5mod.common.get_regions(args.bam, [args.region])[0]
-    ref = pysam.FastaFile(args.reference)
-    ref = ref.fetch(region.ref_name)
     motifs = MOTIFS[args.meth]
 
     additional_text = ''
@@ -466,55 +463,60 @@ def call_methylation(args):
         "Calling methylation at {} sites.{}".format(
             args.meth, additional_text))
 
+    references = pysam.FastaFile(args.reference)
     with open(args.output, 'w') as fh:
         with pysam.AlignmentFile(args.bam, "rb") as bam:
-            for seq, motif_info in motifs.items():
-                tracker = MotifTracker(ref, region, seq, *motif_info)
-                logger.info("Searching for motif '{}'.".format(seq))
-                try:
-                    next(tracker)
-                except StopIteration:
-                    continue
+            for region in fast5mod.common.get_regions(args.bam, args.regions):
+                logger.info("Processing region: {}.".format(region))
+                ref = references.fetch(region.ref_name)
 
-                pileup = bam.pileup(region.ref_name, region.start, region.end)
-                for pileupcolumn in padded_pileup(
-                        pileup, region.start, region.end):
-                    if (pileupcolumn.pos - region.start) % 1000000 == 0:
-                        done = pileupcolumn.pos - region.start
-                        pct_done = 100 * done // (region.end - region.start)
-                        logger.info(
-                            "Processed {} ref positions ({}%)".format(
-                                done, pct_done))
-                    if pileupcolumn.pos > tracker.pos:
-                        raise ValueError(
-                            "Unexpectedly skipped reference columns.")
-                    elif pileupcolumn.pos == tracker.pos:
-                        for read in pileupcolumn.pileups:
-                            aln = read.alignment
-                            if read.is_del \
-                                    or read.is_refskip \
-                                    or aln.is_reverse != tracker.is_rev:
-                                continue
-                            qpos = read.query_position
-                            tag = read.alignment.get_tag(tracker.tag)
-                            # NOTE: tags are not reversed, see above
-                            if not aln.is_reverse:
-                                mscore = tag[qpos]
-                            else:
-                                mscore = tag[len(tag) - qpos - 1]
-                            if mscore > args.filter[1]:
-                                tracker.add(True)
-                            elif mscore < args.filter[0]:
-                                tracker.add(False)
-                    else:
-                        # skip forward
-                        continue
-
-                    if tracker.taken_all:
-                        fh.write('\t'.join(str(x) for x in tracker.summary))
-                        fh.write('\n')
-                        tracker.reset_counters()
+                for seq, motif_info in motifs.items():
+                    tracker = MotifTracker(ref, region, seq, *motif_info)
+                    logger.info("Searching for motif '{}'.".format(seq))
                     try:
                         next(tracker)
                     except StopIteration:
-                        break
+                        continue
+
+                    pileup = bam.pileup(region.ref_name, region.start, region.end)
+                    for pileupcolumn in padded_pileup(
+                            pileup, region.start, region.end):
+                        if (pileupcolumn.pos - region.start) % 1000000 == 0:
+                            done = pileupcolumn.pos - region.start
+                            pct_done = 100 * done // (region.end - region.start)
+                            logger.info(
+                                "Processed {} ref positions ({}%)".format(
+                                    done, pct_done))
+                        if pileupcolumn.pos > tracker.pos:
+                            raise ValueError(
+                                "Unexpectedly skipped reference columns.")
+                        elif pileupcolumn.pos == tracker.pos:
+                            for read in pileupcolumn.pileups:
+                                aln = read.alignment
+                                if read.is_del \
+                                        or read.is_refskip \
+                                        or aln.is_reverse != tracker.is_rev:
+                                    continue
+                                qpos = read.query_position
+                                tag = read.alignment.get_tag(tracker.tag)
+                                # NOTE: tags are not reversed, see above
+                                if not aln.is_reverse:
+                                    mscore = tag[qpos]
+                                else:
+                                    mscore = tag[len(tag) - qpos - 1]
+                                if mscore > args.filter[1]:
+                                    tracker.add(True)
+                                elif mscore < args.filter[0]:
+                                    tracker.add(False)
+                        else:
+                            # skip forward
+                            continue
+
+                        if tracker.taken_all:
+                            fh.write('\t'.join(str(x) for x in tracker.summary))
+                            fh.write('\n')
+                            tracker.reset_counters()
+                        try:
+                            next(tracker)
+                        except StopIteration:
+                            break
