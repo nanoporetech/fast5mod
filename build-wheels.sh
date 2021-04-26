@@ -17,7 +17,11 @@ mkdir -p wheelhouse
 
 # Compile wheels
 for minor in $@; do
-    PYBIN="/opt/python/cp3${minor}-cp3${minor}m/bin"
+    if [[ "${minor}" == "8" ]]  || [[ "${minor}" == "9" ]]; then
+        PYBIN="/opt/python/cp3${minor}-cp3${minor}/bin"
+    else
+        PYBIN="/opt/python/cp3${minor}-cp3${minor}m/bin"
+    fi
     # auditwheel/issues/102
     "${PYBIN}/pip" install --upgrade cffi setuptools pip wheel==0.31.1
     "${PYBIN}/pip" wheel . -w ./wheelhouse/
@@ -32,7 +36,11 @@ done
 
 # Install packages
 for minor in $@; do
-    PYBIN="/opt/python/cp3${minor}-cp3${minor}m/bin"
+    if [[ "${minor}" == "8" || "${minor}" == "9" ]]; then
+        PYBIN="/opt/python/cp3${minor}-cp3${minor}/bin"
+    else
+        PYBIN="/opt/python/cp3${minor}-cp3${minor}m/bin"
+    fi
     "${PYBIN}/pip" install "${PACKAGE_NAME}" --no-index -f ./wheelhouse
 done
 

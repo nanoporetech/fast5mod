@@ -35,6 +35,16 @@ build:many-linux-6:
     script:
         - ./build-wheels.sh . 6
 
+build:many-linux-5:
+    <<: *many-linux-def
+    script:
+        - ./build-wheels.sh . 7
+
+build:many-linux-8:
+    <<: *many-linux-def
+    script:
+        - ./build-wheels.sh . 8
+
 build:sdist:
     stage: build
     before_script:
