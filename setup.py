@@ -53,8 +53,8 @@ if __name__ == '__main__':
     pymajor, pyminor = sys.version_info[0:2]
     if (pymajor < 3) or (pyminor not in {5, 6, 7, 8}):
         raise RuntimeError(
-            '`{}` is unsupported on your version of python, '
-            'please use python 3.5 or python 3.6.'.format(__pkg_name__))
+            '`{}` is unsupported on your version of Python, '
+            'please use Python 3.5-3.8 inclusive.'.format(__pkg_name__))
 
     setup(
         name=__pkg_name__,

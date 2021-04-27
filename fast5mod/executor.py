@@ -3,6 +3,11 @@ import concurrent.futures
 import multiprocessing
 import threading
 
+try:
+    from multiprocessing.queues import Queue as _mpQueue
+except AttributeError:
+    from multiprocessing import Queue as _mpQueue
+
 
 class _Executor(object):
 
@@ -71,15 +76,15 @@ class Counter:
             self._count.value -= amount
 
 
-class Queue(multiprocessing.queues.Queue):
-    """A `multiprocessing.queues.Queue` that keeps track of its size.
+class Queue(_mpQueue):
+    """A `multiprocessing.Queue` that keeps track of its size.
 
     The class reimplements `.qsize()` in a way that works on macOS.
     """
 
     def __init__(self, **kwargs):
         """Initialize the class."""
-        super(Queue, self).__init__(
+        super().__init__(
             ctx=multiprocessing.get_context(), **kwargs)
         self._size = Counter(0)
 
