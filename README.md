@@ -7,9 +7,6 @@ Fast5Mod
 
 [![](https://img.shields.io/pypi/v/fast5mod.svg)](https://pypi.org/project/fast5mod/)
 
-[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](https://anaconda.org/bioconda/fast5mod)
-[![](https://img.shields.io/conda/pn/bioconda/fast5mod.svg)](https://anaconda.org/bioconda/fast5mod)
-
 Fast5mod is a set of two programs for converting Guppy's modified base Fast5 output into:
 
   * An aligned or unaligned BAM formatted file, and
