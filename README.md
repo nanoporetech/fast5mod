@@ -14,9 +14,6 @@ Fast5Mod
 
 [![](https://img.shields.io/pypi/v/fast5mod.svg)](https://pypi.org/project/fast5mod/)
 
-[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](https://anaconda.org/bioconda/fast5mod)
-[![](https://img.shields.io/conda/pn/bioconda/fast5mod.svg)](https://anaconda.org/bioconda/fast5mod)
-
 Fast5mod is a set of two programs for converting Guppy's modified base Fast5 output into:
 
   * An aligned or unaligned BAM formatted file, and
@@ -29,20 +26,7 @@ The functionality was originally part of Medaka, but has be removed to this dist
 Installation
 ------------
 
-Fast5Mod can be installed in one of several ways.
-
-**Installation with conda**
-
-Perhaps the simplest way to start using fast5mod on both Linux and MacOS is
-through conda; fast5mod is available via the
-[bioconda](https://anaconda.org/bioconda/fast5mod) channel:
-
-    conda create -n fast5mod -c conda-forge -c bioconda fast5mod
-
-**Installation with pip**
-
-For those who prefer python's native pacakage manager, fast5mod is also available
-on pypi and can be installed using pip:
+fast5mod is available on PyPI and can be installed using pip:
 
     pip install fast5mod
 
