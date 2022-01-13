@@ -1,6 +1,13 @@
 ﻿
-![Oxford Nanopore Technologies logo](https://github.com/nanoporetech/fast5mod/raw/master/images/ONT_logo_590x106.png)
+![ONT_logo](/ONT_logo.png)
+-----------------------------
 
+We have a new bioinformatic resource that largely replaces the functionality of this project! See our new repository here: [https://github.com/epi2melabs/modbam2bed](https://github.com/epi2melabs/modbam2bed)
+
+
+This repository is now unsupported and we do not recommend its use. Please contact Oxford Nanopore: support@nanoporetech.com for help with your application if it is not possible to upgrade to our new resources, or we are missing key features.
+
+******************
 
 Fast5Mod
 ========
